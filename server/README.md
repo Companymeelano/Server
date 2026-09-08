@@ -24,8 +24,11 @@ Tests: `python -m pytest tests/ -q`
 | Var | Purpose |
 |---|---|
 | `BUILDER_DATA` | job workspace dir (default `server/data`) |
+| `BUILDER_TOKEN` | optional API token: clients must send `X-Builder-Token` |
+| `JOB_RETENTION_DAYS` / `MAX_JOBS` | auto-cleanup (default 7 / 200) |
+| `RATE_PER_HOUR` | max new builds per IP per hour (default 30) |
 | `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL` | optional AI customisation |
-| `GITHUB_TOKEN` / `GITHUB_REPO` | cloud builds via Actions |
+| `GITHUB_TOKEN` / `GITHUB_REPO` / `GITHUB_BRANCH` | cloud builds via Actions |
 | `CLOUD_BUILD_WORKFLOW` | workflow file (default `build-generated.yml`) |
 | `CLOUD_BUILD_TIMEOUT_MIN` | cloud wait (default 40) |
 | `PUBLIC_BASE_URL` | absolute artifact links (optional) |

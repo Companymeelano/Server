@@ -22,6 +22,7 @@ class SettingsStore(private val ctx: Context) {
         private val K_AUTO = booleanPreferencesKey("auto")
         private val K_AIKEY = stringPreferencesKey("ai_key")
         private val K_AIBASE = stringPreferencesKey("ai_base")
+        private val K_TOKEN = stringPreferencesKey("api_token")
     }
 
     val serverUrl: Flow<String> = ctx.dataStore.data.map { it[K_SERVER] ?: DEFAULT_SERVER }
@@ -29,10 +30,12 @@ class SettingsStore(private val ctx: Context) {
     val auto: Flow<Boolean> = ctx.dataStore.data.map { it[K_AUTO] ?: true }
     val aiKey: Flow<String> = ctx.dataStore.data.map { it[K_AIKEY] ?: "" }
     val aiBase: Flow<String> = ctx.dataStore.data.map { it[K_AIBASE] ?: "" }
+    val token: Flow<String> = ctx.dataStore.data.map { it[K_TOKEN] ?: "" }
 
     suspend fun setServer(v: String) = ctx.dataStore.edit { it[K_SERVER] = v.trim().trimEnd('/') }
     suspend fun setLang(v: String) = ctx.dataStore.edit { it[K_LANG] = v }
     suspend fun setAuto(v: Boolean) = ctx.dataStore.edit { it[K_AUTO] = v }
     suspend fun setAiKey(v: String) = ctx.dataStore.edit { it[K_AIKEY] = v.trim() }
     suspend fun setAiBase(v: String) = ctx.dataStore.edit { it[K_AIBASE] = v.trim().trimEnd('/') }
+    suspend fun setToken(v: String) = ctx.dataStore.edit { it[K_TOKEN] = v.trim() }
 }

@@ -31,6 +31,7 @@ import com.meelano.builder.data.CreateJobReq
 import com.meelano.builder.data.Repository
 import com.meelano.builder.data.TemplateInfo
 import com.meelano.builder.ui.S
+import com.meelano.builder.ui.components.errText
 import com.meelano.builder.ui.theme.Accent
 import com.meelano.builder.ui.theme.Bg
 import com.meelano.builder.ui.theme.Dim
@@ -46,6 +47,7 @@ fun TemplatesScreen(
     auto: Boolean,
     aiKey: String,
     aiBase: String,
+    token: String,
     onBuilt: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -53,11 +55,11 @@ fun TemplatesScreen(
     var busy by remember { mutableStateOf("") }
     var err by remember { mutableStateOf("") }
 
-    LaunchedEffect(serverUrl) {
+    LaunchedEffect(serverUrl, token) {
         try {
-            list = repo.apiFor(serverUrl).templates().templates
+            list = repo.apiFor(serverUrl, token).templates().templates
         } catch (e: Exception) {
-            err = e.message ?: "error"
+            err = errText(lang, e)
         }
     }
 
@@ -69,13 +71,13 @@ fun TemplatesScreen(
             try {
                 val plats = if (auto) listOf("android", "windows")
                 else listOf("android", "windows")
-                val job = repo.apiFor(serverUrl).createJob(
+                val job = repo.apiFor(serverUrl, token).createJob(
                     CreateJobReq(idea, plats, lang, "", aiKey, aiBase))
                 busy = ""
                 onBuilt(job.id)
             } catch (e: Exception) {
                 busy = ""
-                err = S[lang, "err_create"] + (e.message ?: "")
+                err = errText(lang, e)
             }
         }
     }

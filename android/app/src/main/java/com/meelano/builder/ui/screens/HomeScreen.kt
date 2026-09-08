@@ -45,12 +45,11 @@ import com.meelano.builder.data.Suggestion
 import com.meelano.builder.ui.Brand
 import com.meelano.builder.ui.S
 import com.meelano.builder.ui.components.YbTopBar
+import com.meelano.builder.ui.components.errText
 import com.meelano.builder.ui.theme.Accent
-import com.meelano.builder.ui.theme.Bg
 import com.meelano.builder.ui.theme.Dim
 import com.meelano.builder.ui.theme.Line
 import com.meelano.builder.ui.theme.Surface
-import com.meelano.builder.ui.theme.Txt
 import kotlinx.coroutines.launch
 
 /** Home = the YBee screen: headline, suggestion chips, idea box, footer. */
@@ -62,6 +61,7 @@ fun HomeScreen(
     auto: Boolean,
     aiKey: String,
     aiBase: String,
+    token: String,
     onOpenDrawer: () -> Unit,
     onPhone: () -> Unit,
     onBuilt: (String) -> Unit,
@@ -74,9 +74,9 @@ fun HomeScreen(
     var err by remember { mutableStateOf("") }
     var suggestions by remember { mutableStateOf(fallbackSuggestions()) }
 
-    LaunchedEffect(serverUrl) {
+    LaunchedEffect(serverUrl, token) {
         try {
-            val r = repo.apiFor(serverUrl).templates()
+            val r = repo.apiFor(serverUrl, token).templates()
             if (r.suggestions.isNotEmpty()) suggestions = r.suggestions
         } catch (_: Exception) { /* offline: keep fallbacks */ }
     }
@@ -93,13 +93,13 @@ fun HomeScreen(
         busy = true; err = ""
         scope.launch {
             try {
-                val job = repo.apiFor(serverUrl).createJob(
+                val job = repo.apiFor(serverUrl, token).createJob(
                     CreateJobReq(text, plats, lang, "", aiKey, aiBase))
                 busy = false
                 onBuilt(job.id)
             } catch (e: Exception) {
                 busy = false
-                err = S[lang, "err_create"] + (e.message ?: "")
+                err = errText(lang, e)
             }
         }
     }

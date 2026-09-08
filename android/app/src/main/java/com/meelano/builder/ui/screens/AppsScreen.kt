@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -34,7 +36,9 @@ import com.meelano.builder.data.Job
 import com.meelano.builder.data.Repository
 import com.meelano.builder.ui.S
 import com.meelano.builder.ui.components.StatusBadge
+import com.meelano.builder.ui.components.errText
 import com.meelano.builder.ui.theme.Accent
+import com.meelano.builder.ui.theme.Bg
 import com.meelano.builder.ui.theme.Dim
 import com.meelano.builder.ui.theme.Surface
 import com.meelano.builder.ui.theme.Txt
@@ -44,18 +48,19 @@ fun AppsScreen(
     repo: Repository,
     serverUrl: String,
     lang: String,
+    token: String,
     onOpen: (String) -> Unit,
 ) {
     var jobs by remember { mutableStateOf<List<Job>>(emptyList()) }
     var err by remember { mutableStateOf("") }
     var tick by remember { mutableStateOf(0) }
 
-    LaunchedEffect(serverUrl, tick) {
+    LaunchedEffect(serverUrl, token, tick) {
         try {
-            jobs = repo.apiFor(serverUrl).jobs(50).jobs
+            jobs = repo.apiFor(serverUrl, token).jobs(50).jobs
             err = ""
         } catch (e: Exception) {
-            err = e.message ?: "error"
+            err = errText(lang, e)
         }
     }
 
@@ -69,7 +74,16 @@ fun AppsScreen(
             }
         }
         Spacer(Modifier.height(8.dp))
-        if (err.isNotEmpty()) Text(err, color = Dim, fontSize = 13.sp)
+        if (err.isNotEmpty()) {
+            Text(err, color = Dim, fontSize = 13.sp)
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { tick++ },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Accent, contentColor = Bg),
+            ) { Text(S[lang, "retry"]) }
+            Spacer(Modifier.height(8.dp))
+        }
         if (jobs.isEmpty() && err.isEmpty()) {
             Text(S[lang, "empty_apps"], color = Dim, fontSize = 14.sp)
         }

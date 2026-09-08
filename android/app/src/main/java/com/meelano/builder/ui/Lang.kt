@@ -43,6 +43,11 @@ object S {
         "status_partial" to "partial",
         "status_failed" to "failed",
         "err_create" to "Could not start build: ",
+        "api_token" to "Server API token (if the server requires one)",
+        "api_token_hint" to "Same value as BUILDER_TOKEN on your server. Leave empty if the server has no token.",
+        "err_network" to "Cannot reach the server. Check the URL, Wi-Fi, and that start_server is running.",
+        "err_unauth" to "Wrong API token — fix it in Settings.",
+        "retry" to "↻ Retry",
         "srv_help_title" to "📡 How to connect your phone",
         "srv_help_body" to "1) On your PC open the server folder and double-click start_server.bat (Windows) or run ./start_server.sh\n2) Connect your phone to the SAME Wi-Fi as the PC\n3) Type the http://xxx.xxx.xxx.xxx:8000 address shown in the black window into Server URL above\n4) Tap Test ✓ — then build anything!",
     )
@@ -87,6 +92,11 @@ object S {
         "status_partial" to "نیمه‌آماده",
         "status_failed" to "ناموفق",
         "err_create" to "شروع ساخت ناموفق بود: ",
+        "api_token" to "توکن امنیتی سرور (اگه سرور توکن می‌خواد)",
+        "api_token_hint" to "همان مقدار BUILDER_TOKEN روی سرور. اگه سرور توکن نداره خالی بذار.",
+        "err_network" to "به سرور وصل نشد. آدرس، وای‌فای و روشن بودن سرور (start_server) را چک کن.",
+        "err_unauth" to "توکن اشتباه است — از تنظیمات اصلاحش کن.",
+        "retry" to "↻ تلاش مجدد",
         "srv_help_title" to "📡 اتصال گوشی به سرور چطور؟",
         "srv_help_body" to "۱) روی کامپیوتر وارد پوشه server شو و start_server.bat را اجرا کن (ویندوز) یا ./start_server.sh (لینوکس/مک)\n۲) گوشی را به همان وای‌فای کامپیوتر وصل کن\n۳) آدرسی که توی پنجره مشکی نشون داده (مثل http://192.168.1.5:8000) را بالا در «آدرس سرور» بنویس\n۴) دکمه تست ✓ را بزن — بعد هر چیزی بساز!",
     )

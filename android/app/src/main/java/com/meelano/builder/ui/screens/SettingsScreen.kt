@@ -38,6 +38,7 @@ import com.meelano.builder.data.Repository
 import com.meelano.builder.data.SettingsStore
 import com.meelano.builder.ui.S
 import com.meelano.builder.ui.components.CardBox
+import com.meelano.builder.ui.components.errText
 import com.meelano.builder.ui.theme.Accent
 import com.meelano.builder.ui.theme.Bg
 import com.meelano.builder.ui.theme.Dim
@@ -52,16 +53,19 @@ fun SettingsScreen(store: SettingsStore, repo: Repository, lang: String) {
     val auto by store.auto.collectAsStateWithLifecycle(true)
     val aiKey by store.aiKey.collectAsStateWithLifecycle("")
     val aiBase by store.aiBase.collectAsStateWithLifecycle("")
+    val token by store.token.collectAsStateWithLifecycle("")
 
     var urlDraft by remember { mutableStateOf("") }
     var keyDraft by remember { mutableStateOf("") }
     var baseDraft by remember { mutableStateOf("") }
+    var tokenDraft by remember { mutableStateOf("") }
     var testMsg by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(serverUrl, aiKey, aiBase) {
+    LaunchedEffect(serverUrl, aiKey, aiBase, token) {
         if (!loaded && serverUrl != "…") {
             urlDraft = serverUrl; keyDraft = aiKey; baseDraft = aiBase
+            tokenDraft = token
             loaded = true
         }
     }
@@ -93,6 +97,7 @@ fun SettingsScreen(store: SettingsStore, repo: Repository, lang: String) {
                     onClick = {
                         scope.launch {
                             store.setServer(urlDraft.ifBlank { SettingsStore.DEFAULT_SERVER })
+                            store.setToken(tokenDraft)
                             testMsg = ""
                         }
                     },
@@ -104,17 +109,27 @@ fun SettingsScreen(store: SettingsStore, repo: Repository, lang: String) {
                         testMsg = "…"
                         testMsg = try {
                             val h = repo.apiFor(
-                                urlDraft.ifBlank { SettingsStore.DEFAULT_SERVER }).health()
+                                urlDraft.ifBlank { SettingsStore.DEFAULT_SERVER },
+                                tokenDraft).health()
                             "${S[lang, "connected"]} · v${h.version}" +
                                 (if (h.ai) " · 🤖AI" else "") +
                                 (if (h.cloud_build) " · ☁️" else "")
                         } catch (e: Exception) {
-                            S[lang, "conn_fail"] + " (${e.message})"
+                            errText(lang, e)
                         }
                     }
                 }) { Text(S[lang, "test"], color = Accent) }
             }
             if (testMsg.isNotEmpty()) Text(testMsg, color = Dim, fontSize = 13.sp)
+        }
+
+        CardBox(Modifier.fillMaxWidth()) {
+            Text("🔑 ${S[lang, "api_token"]}", color = Txt,
+                fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            OutlinedTextField(tokenDraft, { tokenDraft = it }, singleLine = true,
+                shape = RoundedCornerShape(12.dp), colors = tfColors,
+                modifier = Modifier.fillMaxWidth())
+            Text(S[lang, "api_token_hint"], color = Dim, fontSize = 12.sp)
         }
 
         CardBox(Modifier.fillMaxWidth()) {

@@ -35,11 +35,12 @@ fun BuilderApp(repo: Repository, store: SettingsStore, lang: String) {
     val auto by store.auto.collectAsStateWithLifecycle(true)
     val aiKey by store.aiKey.collectAsStateWithLifecycle("")
     val aiBase by store.aiBase.collectAsStateWithLifecycle("")
+    val token by store.token.collectAsStateWithLifecycle("")
 
     fun phoneAction() {
         scope.launch {
             val target = try {
-                val jobs = repo.apiFor(serverUrl).jobs(1).jobs
+                val jobs = repo.apiFor(serverUrl, token).jobs(1).jobs
                 if (jobs.isNotEmpty()) "preview/${jobs[0].id}" else "apps"
             } catch (_: Exception) { "apps" }
             nav.navigate(target)
@@ -56,14 +57,14 @@ fun BuilderApp(repo: Repository, store: SettingsStore, lang: String) {
     ) {
         NavHost(nav, startDestination = "home") {
             composable("home") {
-                HomeScreen(repo, serverUrl, lang, auto, aiKey, aiBase,
+                HomeScreen(repo, serverUrl, lang, auto, aiKey, aiBase, token,
                     onOpenDrawer = { scope.launch { drawer.open() } },
                     onPhone = ::phoneAction,
                     onBuilt = { nav.navigate("build/$it") })
             }
             composable("build/{id}") { back ->
                 val id = back.arguments?.getString("id") ?: ""
-                BuildScreen(repo, serverUrl, lang, id,
+                BuildScreen(repo, serverUrl, lang, token, id,
                     onBack = { nav.popBackStack() },
                     onPreview = { nav.navigate("preview/$it") })
             }
@@ -72,11 +73,11 @@ fun BuilderApp(repo: Repository, store: SettingsStore, lang: String) {
                 PreviewScreen(serverUrl, lang, id, onBack = { nav.popBackStack() })
             }
             composable("apps") {
-                AppsScreen(repo, serverUrl, lang,
+                AppsScreen(repo, serverUrl, lang, token,
                     onOpen = { nav.navigate("build/$it") })
             }
             composable("templates") {
-                TemplatesScreen(repo, serverUrl, lang, auto, aiKey, aiBase,
+                TemplatesScreen(repo, serverUrl, lang, auto, aiKey, aiBase, token,
                     onBuilt = { nav.navigate("build/$it") })
             }
             composable("settings") { SettingsScreen(store, repo, lang) }

@@ -149,6 +149,27 @@ fun DrawerContent(
     }
 }
 
+/** Friendly, localized error text instead of raw exception messages. */
+fun errText(lang: String, e: Throwable): String {
+    val http = generateSequence(e) { it.cause }.filterIsInstance<retrofit2.HttpException>().firstOrNull()
+    if (http != null) {
+        return when (http.code()) {
+            401 -> S[lang, "err_unauth"]
+            429 -> if (lang == "fa") "محدودیت سرعت: کمی بعد دوباره تلاش کن."
+            else "Rate limit: try again in a bit."
+            else -> if (lang == "fa") "خطای سرور (${http.code()}). دوباره تلاش کن."
+            else "Server error (${http.code()}). Try again."
+        }
+    }
+    val io = generateSequence(e) { it.cause }.any {
+        it is java.io.IOException || it is java.net.UnknownHostException ||
+            it is java.net.SocketTimeoutException ||
+            (it is IllegalArgumentException && "$it".contains("baseUrl"))
+    }
+    if (io) return S[lang, "err_network"]
+    return (e.message ?: "$e").take(160)
+}
+
 @Composable
 fun CardBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Box(modifier = modifier.clip(RoundedCornerShape(16.dp)).background(Surface)

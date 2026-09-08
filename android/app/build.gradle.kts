@@ -4,6 +4,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Optional release signing (Play Store). Provide via env vars or gradle.properties:
+// KEYSTORE_FILE, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD.
+// Without them the release build stays unsigned (debug APK still installs fine).
+val keystoreFile = (System.getenv("KEYSTORE_FILE")
+    ?: project.findProperty("KEYSTORE_FILE")?.toString())?.let { file(it) }
+
 android {
     namespace = "com.meelano.builder"
     compileSdk = 34
@@ -15,6 +21,19 @@ android {
         versionCode = 1
         versionName = "1.0"
     }
+    signingConfigs {
+        if (keystoreFile?.exists() == true) {
+            create("release") {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    ?: project.findProperty("KEYSTORE_PASSWORD")?.toString()
+                keyAlias = System.getenv("KEY_ALIAS")
+                    ?: project.findProperty("KEY_ALIAS")?.toString()
+                keyPassword = System.getenv("KEY_PASSWORD")
+                    ?: project.findProperty("KEY_PASSWORD")?.toString()
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -22,6 +41,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {

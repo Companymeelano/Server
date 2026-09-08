@@ -29,6 +29,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -45,6 +46,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.meelano.builder.data.Artifact
 import com.meelano.builder.data.Job
 import com.meelano.builder.data.Repository
@@ -52,19 +56,17 @@ import com.meelano.builder.data.isTerminal
 import com.meelano.builder.ui.S
 import com.meelano.builder.ui.components.CardBox
 import com.meelano.builder.ui.components.StatusBadge
+import com.meelano.builder.ui.components.errText
 import com.meelano.builder.ui.theme.Accent
 import com.meelano.builder.ui.theme.Bg
 import com.meelano.builder.ui.theme.Dim
-import com.meelano.builder.ui.theme.Line
 import com.meelano.builder.ui.theme.Surface2
 import com.meelano.builder.ui.theme.Txt
 import com.meelano.builder.util.ApkInstaller
 import com.meelano.builder.util.QrImage
 import java.io.File
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 private data class Dl(val state: String, val pct: Int, val file: File? = null)
 
@@ -74,6 +76,7 @@ fun BuildScreen(
     repo: Repository,
     serverUrl: String,
     lang: String,
+    token: String,
     jobId: String,
     onBack: () -> Unit,
     onPreview: (String) -> Unit,
@@ -83,33 +86,53 @@ fun BuildScreen(
     val main = remember { Handler(Looper.getMainLooper()) }
     var job by remember { mutableStateOf<Job?>(null) }
     var err by remember { mutableStateOf("") }
+    var tick by remember { mutableStateOf(0) }
+    var pendingInstall by remember { mutableStateOf<File?>(null) }
     val dls = remember { mutableStateMapOf<String, Dl>() }
 
-    LaunchedEffect(jobId) {
+    LaunchedEffect(jobId, tick) {
         while (true) {
             try {
-                val j = repo.apiFor(serverUrl).job(jobId)
+                val j = repo.apiFor(serverUrl, token).job(jobId)
                 job = j
+                err = ""
                 if (j.isTerminal()) break
             } catch (e: Exception) {
-                err = e.message ?: "error"
+                err = errText(lang, e)
             }
             delay(1500)
         }
     }
 
+    // Resume-install: if the user granted "unknown apps" in Settings and came
+    // back, continue the pending install automatically.
+    val owner = LocalLifecycleOwner.current
+    DisposableEffect(owner, pendingInstall) {
+        val obs = LifecycleEventObserver { _, ev ->
+            if (ev == Lifecycle.Event.ON_RESUME) {
+                val f = pendingInstall
+                if (f != null && f.exists() && ApkInstaller.canInstall(ctx)) {
+                    pendingInstall = null
+                    ApkInstaller.installApk(ctx, f)
+                }
+            }
+        }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+
     fun download(a: Artifact) {
         if (dls[a.filename]?.state == "busy") return
         dls[a.filename] = Dl("busy", 0)
-        scope.launch(Dispatchers.IO) {
+        scope.launch {
             try {
                 val f = ApkInstaller.download(
-                    ctx, repo, repo.absolute(serverUrl, a.url), a.filename) { p ->
+                    ctx, repo.absolute(serverUrl, a.url), a.filename, token) { p ->
                     main.post { dls[a.filename] = Dl("busy", p) }
                 }
                 main.post { dls[a.filename] = Dl("ready", 100, f) }
             } catch (e: Exception) {
-                main.post { dls[a.filename] = Dl("error", 0); err = e.message ?: "error" }
+                main.post { dls[a.filename] = Dl("error", 0); err = errText(lang, e) }
             }
         }
     }
@@ -136,7 +159,12 @@ fun BuildScreen(
                     color = Accent, trackColor = Surface2)
                 Text("${j.progress}%", color = Dim, fontSize = 12.sp)
             }
-            if (err.isNotEmpty()) Text(err, color = Color(0xFFFF9D9D), fontSize = 13.sp)
+            if (err.isNotEmpty()) {
+                Text(err, color = Color(0xFFFF9D9D), fontSize = 13.sp)
+                OutlinedButton(onClick = { err = ""; tick++ }) {
+                    Text(S[lang, "retry"], color = Accent)
+                }
+            }
 
             // Live logs
             val logs = job?.logs ?: emptyList()
@@ -166,8 +194,11 @@ fun BuildScreen(
                         onInstall = {
                             val f = dls[a.filename]?.file
                                 ?: ApkInstaller.destFile(ctx, a.filename)
-                            if (f.exists()) ApkInstaller.installApk(ctx, f)
-                            else download(a)
+                            if (f.exists()) {
+                                if (!ApkInstaller.installApk(ctx, f)) {
+                                    pendingInstall = f
+                                }
+                            } else download(a)
                         })
                 }
                 val apk = arts.firstOrNull { it.kind == "apk" }
