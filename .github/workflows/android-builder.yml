@@ -11,8 +11,16 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    outputs:
+      signing: ${{ steps.signing.outputs.enabled }}
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: signing
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: gradle/actions/setup-gradle@v3
@@ -35,11 +43,14 @@ jobs:
   release:
     # Signed Play-Store build. Needs repo secrets: KEYSTORE_BASE64,
     # KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD (see android/README.md).
-    if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+    # (secrets are unreadable in job-level `if`, so the apk job exports
+    # the flag as an output instead.)
     needs: [apk]
+    if: ${{ needs.apk.outputs.signing == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: gradle/actions/setup-gradle@v3
