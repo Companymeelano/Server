@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeeLano Builder — What do you want to make today?</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="top">
+  <span class="burger">☰</span>
+  <h1>MeeLano</h1>
+  <div class="spacer"></div>
+  <span class="auto">AUTO</span>
+  <button class="iconbtn" id="langBtn" title="FA/EN">🌐</button>
+</div>
+
+<div id="home">
+  <div class="hero"><h2 id="headline">What do you want to make today?</h2></div>
+  <div class="chips" id="chips"></div>
+  <div class="ask">
+    <input id="idea" maxlength="500" placeholder="Type your idea...">
+    <button id="go" title="Build">→</button>
+  </div>
+  <div class="plat">
+    <label><input type="checkbox" id="p_android" checked> 🤖 Android (APK)</label>
+    <label><input type="checkbox" id="p_windows" checked> 🪟 Windows (.exe + Setup)</label>
+  </div>
+  <div class="foot">Made with ❤️ by MeeLano Team</div>
+  <div class="card"><h3 id="myApps">📱 My apps</h3><div id="jobs"></div></div>
+</div>
+
+<div id="jobview" class="hidden">
+  <div class="card">
+    <div class="row"><button onclick="showHome()">← Back</button></div>
+    <h3 id="j_title">🔨 Building...</h3>
+    <div id="j_idea" style="color:var(--dim);font-size:14px"></div>
+    <p><span class="badge" id="j_status">queued</span></p>
+    <div class="bar"><div id="j_bar" style="width:0%"></div></div>
+    <div class="logs" id="j_logs"></div>
+    <div class="dl" id="j_dl"></div>
+    <div class="row" style="margin-top:12px">
+      <button id="j_preview_btn" onclick="togglePreview()">👁 Preview</button>
+    </div>
+    <iframe class="prev hidden" id="j_prev"></iframe>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

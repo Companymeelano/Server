@@ -1,0 +1,43 @@
+name: build-generated
+# Cloud build for apps created by MeeLano Builder.
+# Triggered manually OR automatically by the server (needs GITHUB_TOKEN + GITHUB_REPO).
+on:
+  workflow_dispatch:
+    inputs:
+      template: { description: "Template id (blog, calculator, notes, dice, weather, shop, starter)", default: "blog" }
+      app_name: { description: "App display name", default: "My App" }
+      slug: { description: "URL-safe slug", default: "my-app" }
+      platforms: { description: "android,windows", default: "android,windows" }
+jobs:
+  windows:
+    if: contains(inputs.platforms, 'windows')
+    runs-on: windows-latest
+    defaults: { run: { shell: pwsh } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: choco install nsis -y
+      - run: python server/local_build.py --template "${{ inputs.template }}" --name "${{ inputs.app_name }}" --slug "${{ inputs.slug }}" --platform windows --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ inputs.slug }}
+          path: |
+            dist/*.exe
+            dist/*-source.zip
+  android:
+    if: contains(inputs.platforms, 'android')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - uses: gradle/actions/setup-gradle@v3
+      - uses: android-actions/setup-android@v3
+      - run: python server/local_build.py --template "${{ inputs.template }}" --name "${{ inputs.app_name }}" --slug "${{ inputs.slug }}" --platform android --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ inputs.slug }}
+          path: dist/*.apk
