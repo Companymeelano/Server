@@ -25,5 +25,15 @@ CLOUD_BUILD_TIMEOUT_MIN = int(os.environ.get("CLOUD_BUILD_TIMEOUT_MIN", "40"))
 # Public base URL used to build absolute artifact links (optional).
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").rstrip("/")
 
+# Optional API token: when set, every /api/* call must send it
+# as the X-Builder-Token header (configure the same value in the app).
+API_TOKEN = os.environ.get("BUILDER_TOKEN", "")
+
+# House-keeping: delete jobs older than N days / keep at most M jobs.
+JOB_RETENTION_DAYS = int(os.environ.get("JOB_RETENTION_DAYS", "7"))
+MAX_JOBS = int(os.environ.get("MAX_JOBS", "200"))
+# Abuse protection: max new builds per IP per hour.
+RATE_PER_HOUR = int(os.environ.get("RATE_PER_HOUR", "30"))
+
 APP_VERSION = "1.0.0"
 JOB_LOG_LIMIT = 2000

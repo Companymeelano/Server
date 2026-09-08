@@ -44,4 +44,19 @@ def test_render_all_templates():
         assert "android/app/src/main/java/com/meelano/generated/MainActivity.kt" in files
         assert "installer/installer.nsi" in files
         assert "{{APP_NAME}}" not in files["web/index.html"]
+        assert "customtkinter" in files["windows/app.py"]
         compile(files["windows/app.py"], "app.py", "exec")  # valid python
+
+
+def test_generated_app_branding():
+    files = generator.render("blog", "Demo App", "demo idea")
+    man = files["android/app/src/main/AndroidManifest.xml"]
+    assert "@style/Theme.GeneratedApp" in man
+    assert "android/app/src/main/res/values/themes.xml" in files
+    pngs = [v for k, v in files.items() if k.endswith(".png")]
+    assert len(pngs) >= 15  # legacy + round + adaptive foregrounds
+    for raw in pngs:
+        assert isinstance(raw, bytes) and raw[:8] == b"\x89PNG\r\n\x1a\n"
+    # non-latin names fall back to the M glyph without crashing
+    files2 = generator.render("notes", "یادداشت من", "demo")
+    assert any(k.endswith("ic_launcher.png") for k in files2)

@@ -56,7 +56,7 @@ def extract_name(idea: str, template_id: str, lang: str) -> str:
 
 
 def render(template_id: str, app_name: str, idea: str) -> dict:
-    """Render all bundle files: {relative_path: content}."""
+    """Render all bundle files: {relative_path: str|bytes}."""
     t = TEMPLATES[template_id]
 
     def fill(s: str) -> str:
@@ -65,10 +65,11 @@ def render(template_id: str, app_name: str, idea: str) -> dict:
                  .replace("{{IDEA}}", idea.strip()[:200]))
 
     from .buildkit_files import android_project_files, installer_files
+    from .win_tk import NEW_WIN
     files = {
         "web/index.html": fill(t["web"]),
-        "windows/app.py": fill(t["py"]),
-        "windows/requirements.txt": "# no third-party deps (tkinter is in stdlib)\n",
+        "windows/app.py": fill(NEW_WIN.get(template_id, t["py"])),
+        "windows/requirements.txt": "customtkinter\n",
         "README.md": ("# %s\n\nBuilt with MeeLano Builder from the idea:\n> %s\n\n"
                        "Folders: `web/` (preview + Android asset), `windows/` (PyInstaller exe),\n"
                        "`android/` (APK project), `installer/` (NSIS setup script).\n"
@@ -76,6 +77,15 @@ def render(template_id: str, app_name: str, idea: str) -> dict:
     }
     slug = slugify(app_name)
     files.update(android_project_files(slug, app_name, fill(t["web"])))
+    try:  # branded launcher icon + splash theme (cosmetic, optional)
+        from .make_icon import android_branding_files
+        files.update(android_branding_files(app_name, t["accent"]))
+        man = "android/app/src/main/AndroidManifest.xml"
+        files[man] = files[man].replace(
+            "@android:style/Theme.Material.NoActionBar",
+            "@style/Theme.GeneratedApp")
+    except Exception:
+        pass
     files.update(installer_files(app_name, slug))
     return files
 

@@ -1,18 +1,50 @@
 """MeeLano Builder API — type one short sentence, get installable apps."""
-import asyncio
 import json
 import time
+from collections import defaultdict
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import builder, config, jobs
 from .templates_data import SUGGESTIONS, TEMPLATES
 
-app = FastAPI(title="MeeLano Builder", version=config.APP_VERSION)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    jobs.cleanup(config.JOB_RETENTION_DAYS, config.MAX_JOBS)
+    yield
+
+
+app = FastAPI(title="MeeLano Builder", version=config.APP_VERSION,
+              lifespan=lifespan)
+
+# Simple in-memory rate limiter: ip -> [hit timestamps]
+_hits: dict[str, list[float]] = defaultdict(list)
+
+
+@app.middleware("http")
+async def _guard(request: Request, call_next):
+    if request.url.path.startswith("/api/"):
+        if (config.API_TOKEN and request.headers.get("X-Builder-Token", "")
+                != config.API_TOKEN):
+            return JSONResponse(
+                {"detail": "unauthorized (bad or missing token)"},
+                status_code=401)
+        if request.method == "POST" and request.url.path == "/api/v1/jobs":
+            ip = request.client.host if request.client else "?"
+            now = time.time()
+            _hits[ip] = [t for t in _hits[ip] if now - t < 3600]
+            if len(_hits[ip]) >= config.RATE_PER_HOUR:
+                return JSONResponse(
+                    {"detail": "rate limit exceeded, try again later"},
+                    status_code=429)
+            _hits[ip].append(now)
+    return await call_next(request)
 
 
 class CreateJob(BaseModel):
@@ -29,7 +61,8 @@ def health():
     from . import github_cloud
     return {"ok": True, "version": config.APP_VERSION,
             "ai": bool(config.OPENAI_API_KEY),
-            "cloud_build": github_cloud.enabled()}
+            "cloud_build": github_cloud.enabled(),
+            "auth": bool(config.API_TOKEN)}
 
 
 @app.get("/api/v1/templates")
@@ -50,12 +83,9 @@ def create_job(body: CreateJob):
     job = jobs.create(body.idea.strip(), platforms, body.lang,
                       body.name.strip()[:40])
     if body.ai_key:
-        job["ai_key"] = body.ai_key[:200]
-        job["ai_base"] = body.ai_base[:200]
-        jobs.update(job["id"], ai_key=job["ai_key"], ai_base=job["ai_base"])
+        jobs.update(job["id"], ai_key=body.ai_key[:200],
+                    ai_base=body.ai_base[:200])
     jobs.submit(builder.run_job, job["id"])
-    job.pop("ai_key", None)
-    job.pop("ai_base", None)
     return job
 
 
@@ -117,6 +147,12 @@ def artifact(job_id: str, filename: str):
     if not f.exists() or not f.is_file():
         raise HTTPException(404, "artifact not found")
     return FileResponse(f, filename=filename)
+
+
+@app.post("/api/v1/admin/cleanup")
+def admin_cleanup():
+    jobs.cleanup(config.JOB_RETENTION_DAYS, config.MAX_JOBS)
+    return {"ok": True, "jobs": len(jobs.list_all(100000))}
 
 
 static_dir = Path(__file__).parent / "static"

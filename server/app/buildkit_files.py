@@ -133,15 +133,15 @@ SectionEnd
 
 WINDOWS_BUILD_BAT = """@echo off
 REM Build {{APP_NAME}} -> single-file .exe (run on Windows with Python 3.10+)
-pip install pyinstaller
-pyinstaller --noconfirm --onefile --windowed --name {{SLUG}} app.py
+pip install pyinstaller customtkinter
+pyinstaller --noconfirm --onefile --windowed --collect-all customtkinter --name {{SLUG}} app.py
 echo EXE: dist\\{{SLUG}}.exe
 """
 
 WINDOWS_BUILD_SH = """#!/bin/sh
 # Build {{APP_NAME}} on macOS/Linux (for test) or Windows-GitBash
-pip install pyinstaller
-pyinstaller --noconfirm --onefile --windowed --name {{SLUG}} app.py
+pip install pyinstaller customtkinter
+pyinstaller --noconfirm --onefile --windowed --collect-all customtkinter --name {{SLUG}} app.py
 echo "EXE: dist/{{SLUG}}.exe"
 """
 

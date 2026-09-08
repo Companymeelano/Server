@@ -53,7 +53,10 @@ def run_job(job_id: str):
         for rel, content in files.items():
             p = src / rel
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(content, encoding="utf-8")
+            if isinstance(content, bytes):
+                p.write_bytes(content)
+            else:
+                p.write_text(content, encoding="utf-8")
         say(f"📝 {len(files)} source files generated", 32)
         jobs.finish_step(job_id)
 
@@ -155,6 +158,8 @@ def run_job(job_id: str):
     except Exception as e:
         jobs.log(job_id, f"❌ Build failed: {e}", progress=100)
         jobs.update(job_id, status="failed", error=str(e)[:500])
+    finally:
+        jobs.cleanup(config.JOB_RETENTION_DAYS, config.MAX_JOBS)
 
 
 def _run(cmd, cwd: Path, timeout: int = 900) -> tuple[int, str]:
@@ -177,7 +182,9 @@ def _build_exe_local(job_id, wdir: Path, out: Path, slug: str, say) -> Path | No
             ["python", "-m", "PyInstaller", "--version"], wdir, 60)[0] != 0:
         return None
     say("   ... compiling with PyInstaller (this takes a while)", 50)
+    _run(["python", "-m", "pip", "install", "-q", "customtkinter"], wdir, 600)
     code, log = _run(["pyinstaller", "--noconfirm", "--onefile", "--windowed",
+                      "--collect-all", "customtkinter",
                       "--name", slug, "app.py"], wdir, timeout=1200)
     if code != 0:
         say("   PyInstaller output: " + log[-600:], 54)

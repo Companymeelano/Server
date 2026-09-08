@@ -109,3 +109,20 @@ def add_artifact(job_id: str, kind: str, label: str, filename: str, size: int = 
 
 def submit(fn, job_id: str):
     _pool.submit(fn, job_id)
+
+
+def cleanup(retention_days: int = 7, max_jobs: int = 200):
+    """Delete job workspaces older than `retention_days`, keep newest `max_jobs`."""
+    import shutil
+    items = []
+    for p in config.JOBS.glob("*/job.json"):
+        try:
+            items.append((p.stat().st_mtime, p.parent))
+        except OSError:
+            continue
+    items.sort(reverse=True)  # newest first
+    now = time.time()
+    for i, (mtime, d) in enumerate(items):
+        age_days = (now - mtime) / 86400
+        if age_days > retention_days or i >= max_jobs:
+            shutil.rmtree(d, ignore_errors=True)

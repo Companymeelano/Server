@@ -1,4 +1,5 @@
 let LANG = localStorage.getItem("m_lang") || "en";
+let TOKEN = localStorage.getItem("m_token") || "";
 let TPL = { suggestions: [] };
 let currentJob = null, pollTimer = null;
 
@@ -12,9 +13,26 @@ const STR = {
 function t(k) { return STR[LANG][k]; }
 
 async function api(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({}, opts.headers || {},
+    TOKEN ? { "X-Builder-Token": TOKEN } : {});
   const r = await fetch(path, opts);
+  if (r.status === 401) {
+    askToken();
+    throw new Error("unauthorized");
+  }
   if (!r.ok) throw new Error(await r.text());
   return r.json();
+}
+
+function askToken() {
+  const v = prompt(LANG === "fa"
+    ? "توکن امنیتی سرور (BUILDER_TOKEN) را وارد کن — خالی = بدون توکن:"
+    : "Enter the server API token (BUILDER_TOKEN) — empty = no token:", TOKEN);
+  if (v === null) return;
+  TOKEN = v.trim();
+  if (TOKEN) localStorage.setItem("m_token", TOKEN);
+  else localStorage.removeItem("m_token");
 }
 
 async function init() {
@@ -23,6 +41,7 @@ async function init() {
     localStorage.setItem("m_lang", LANG);
     applyLang();
   };
+  document.getElementById("keyBtn").onclick = askToken;
   document.getElementById("go").onclick = createJob;
   document.getElementById("idea").addEventListener("keydown", e => {
     if (e.key === "Enter") createJob();
@@ -60,11 +79,17 @@ async function createJob() {
   if (document.getElementById("p_android").checked) platforms.push("android");
   if (document.getElementById("p_windows").checked) platforms.push("windows");
   if (!platforms.length) { alert("Pick at least one platform"); return; }
-  const job = await api("/api/v1/jobs", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idea, platforms, lang: LANG }),
-  });
-  openJob(job.id);
+  try {
+    const job = await api("/api/v1/jobs", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idea, platforms, lang: LANG }),
+    });
+    openJob(job.id);
+  } catch (e) {
+    alert(e.message === "unauthorized"
+      ? (LANG === "fa" ? "توکن اشتباه است (دکمه 🔑)" : "Bad token (🔑 button)")
+      : e.message);
+  }
 }
 
 function showHome() {
