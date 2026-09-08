@@ -1,11 +1,13 @@
 name: android-builder
-# Builds the MeeLano Builder app itself -> installable APK.
+# Builds the MeeLano Builder app itself -> installable APK (also published to releases/).
 on:
   push:
     paths: ["android/**", ".github/workflows/android-builder.yml"]
   pull_request:
     paths: ["android/**"]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -20,3 +22,11 @@ jobs:
         with:
           name: MeeLano-Builder-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publish APK to branch
+        run: |
+          mkdir -p releases
+          cp android/app/build/outputs/apk/debug/app-debug.apk releases/MeeLano-Builder.apk
+          git config user.name "meelano-bot"
+          git config user.email "bot@meelano.local"
+          git add -f releases/MeeLano-Builder.apk
+          git diff --cached --quiet && echo "APK unchanged" || (git commit -m "Publish MeeLano Builder APK (run ${{ github.run_number }})" && git push)
