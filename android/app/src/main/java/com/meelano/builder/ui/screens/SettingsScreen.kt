@@ -77,6 +77,13 @@ fun SettingsScreen(store: SettingsStore, repo: Repository, lang: String) {
         Spacer(Modifier.height(10.dp))
 
         CardBox(Modifier.fillMaxWidth()) {
+            Text(S[lang, "srv_help_title"], color = Txt,
+                fontWeight = FontWeight.SemiBold)
+            Text(S[lang, "srv_help_body"], color = Dim, fontSize = 13.sp,
+                lineHeight = 20.sp)
+        }
+
+        CardBox(Modifier.fillMaxWidth()) {
             Text(S[lang, "server_url"], color = Txt, fontWeight = FontWeight.SemiBold)
             OutlinedTextField(urlDraft, { urlDraft = it }, singleLine = true,
                 shape = RoundedCornerShape(12.dp), colors = tfColors,

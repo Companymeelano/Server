@@ -169,6 +169,10 @@ def _run(cmd, cwd: Path, timeout: int = 900) -> tuple[int, str]:
 
 
 def _build_exe_local(job_id, wdir: Path, out: Path, slug: str, say) -> Path | None:
+    if os.name != "nt":
+        say("   ... skipped: a real .exe can only be compiled on Windows "
+            "(cloud build covers this)", 54)
+        return None
     if not shutil.which("pyinstaller") and _run(
             ["python", "-m", "PyInstaller", "--version"], wdir, 60)[0] != 0:
         return None

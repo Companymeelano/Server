@@ -43,6 +43,8 @@ object S {
         "status_partial" to "partial",
         "status_failed" to "failed",
         "err_create" to "Could not start build: ",
+        "srv_help_title" to "📡 How to connect your phone",
+        "srv_help_body" to "1) On your PC open the server folder and double-click start_server.bat (Windows) or run ./start_server.sh\n2) Connect your phone to the SAME Wi-Fi as the PC\n3) Type the http://xxx.xxx.xxx.xxx:8000 address shown in the black window into Server URL above\n4) Tap Test ✓ — then build anything!",
     )
     private val fa = mapOf(
         "headline" to "امروز می‌خوای چی بسازی؟",
@@ -85,6 +87,8 @@ object S {
         "status_partial" to "نیمه‌آماده",
         "status_failed" to "ناموفق",
         "err_create" to "شروع ساخت ناموفق بود: ",
+        "srv_help_title" to "📡 اتصال گوشی به سرور چطور؟",
+        "srv_help_body" to "۱) روی کامپیوتر وارد پوشه server شو و start_server.bat را اجرا کن (ویندوز) یا ./start_server.sh (لینوکس/مک)\n۲) گوشی را به همان وای‌فای کامپیوتر وصل کن\n۳) آدرسی که توی پنجره مشکی نشون داده (مثل http://192.168.1.5:8000) را بالا در «آدرس سرور» بنویس\n۴) دکمه تست ✓ را بزن — بعد هر چیزی بساز!",
     )
     operator fun get(lang: String, key: String): String =
         (if (lang == "fa") fa else en)[key] ?: en[key] ?: key

@@ -17,6 +17,8 @@ OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 # local machine has no toolchains (PyInstaller/NSIS/Android SDK).
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO = os.environ.get("GITHUB_REPO", "")  # e.g. "Companymeelano/Server"
+# Branch that contains the workflow file (must be pushed there first).
+GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 CLOUD_BUILD_WORKFLOW = os.environ.get("CLOUD_BUILD_WORKFLOW", "build-generated.yml")
 CLOUD_BUILD_TIMEOUT_MIN = int(os.environ.get("CLOUD_BUILD_TIMEOUT_MIN", "40"))
 

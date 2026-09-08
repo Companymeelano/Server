@@ -32,7 +32,7 @@ def dispatch(template: str, app_name: str, slug: str,
             f"{API}/repos/{config.GITHUB_REPO}/actions/workflows/"
             f"{config.CLOUD_BUILD_WORKFLOW}/dispatches",
             headers=_h(),
-            json={"ref": "main",
+            json={"ref": config.GITHUB_BRANCH,
                   "inputs": {"template": template, "app_name": app_name,
                              "slug": slug,
                              "platforms": ",".join(platforms)}})

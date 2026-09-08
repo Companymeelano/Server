@@ -115,7 +115,7 @@ Page instfiles
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  File "..\\dist\\{{EXE_NAME}}"
+  File "..\\windows\\dist\\{{EXE_NAME}}"
   CreateShortcut "$DESKTOP\\{{APP_NAME}}.lnk" "$INSTDIR\\{{EXE_NAME}}"
   CreateDirectory "$SMPROGRAMS\\{{APP_NAME}}"
   CreateShortcut "$SMPROGRAMS\\{{APP_NAME}}\\{{APP_NAME}}.lnk" "$INSTDIR\\{{EXE_NAME}}"
@@ -148,6 +148,8 @@ echo "EXE: dist/{{SLUG}}.exe"
 
 def android_project_files(slug: str, app_name: str, web_html: str) -> dict:
     slug_dot = slug.replace("-", "")
+    if not slug_dot or slug_dot[0].isdigit():  # package segments can't start with a digit
+        slug_dot = "app" + slug_dot
     java_pkg_path = "app/src/main/java/com/meelano/generated/MainActivity.kt"
     return {
         "android/settings.gradle": ANDROID_SETTINGS.replace("{{SLUG}}", slug),
@@ -171,6 +173,6 @@ def installer_files(app_name: str, slug: str) -> dict:
         "windows/build_exe.sh": WINDOWS_BUILD_SH.replace("{{APP_NAME}}", app_name)
                                                 .replace("{{SLUG}}", slug),
         "installer/README.md": ("# Installer\n\n1. Build the exe: run `windows/build_exe.bat` "
-                                "on Windows.\n2. Compile setup: `makensis installer/installer.nsi` "
+                                "on Windows.\n2. `cd installer` then `makensis installer.nsi` "
                                 "-> `%s-Setup.exe`.\n" % slug),
     }
