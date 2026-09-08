@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  issues: write # TEMP-DEBUG: failure-log issues (remove once green)
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -25,21 +24,12 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: gradle/actions/setup-gradle@v3
-      - run: gradle :app:assembleDebug --no-daemon --console=plain 2>&1 | tee "$GITHUB_WORKSPACE/build.log"; test ${PIPESTATUS[0]} -eq 0
+      - run: gradle :app:assembleDebug --no-daemon
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:
           name: MeeLano-Builder-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-      # TEMP-DEBUG: CI logs/artifacts are unreachable from our sandbox,
-      # so failures get posted as an issue instead. Remove once green.
-      - name: Report build log on failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tail -c 50000 "$GITHUB_WORKSPACE/build.log" > /tmp/tail.txt
-          gh issue create --title "android-builder failure (run ${{ github.run_number }})" --body-file /tmp/tail.txt
       - name: Publish APK to branch
         run: |
           git pull --rebase || true
