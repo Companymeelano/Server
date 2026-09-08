@@ -1,5 +1,11 @@
-"""Disk-backed job store + background worker pool."""
+"""Disk-backed job store + background worker pool.
+
+Thread-safe: atomic file replacement on write + tolerant reads, so polling
+a job while it builds can never observe a half-written file.
+"""
 import json
+import os
+import tempfile
 import threading
 import time
 import uuid
@@ -17,6 +23,18 @@ TERMINAL = {"done", "partial", "failed"}
 
 def _path(job_id: str) -> Path:
     return config.JOBS / job_id / "job.json"
+
+
+def _read(path: Path, retries: int = 8):
+    """Read JSON defensively: never die on a torn read during a concurrent write."""
+    for i in range(retries):
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            if i == retries - 1:
+                raise
+            time.sleep(0.02)
+    return None
 
 
 def create(idea: str, platforms: list, lang: str, name: str = "") -> dict:
@@ -40,7 +58,7 @@ def get(job_id: str) -> dict | None:
     p = _path(job_id)
     if not p.exists():
         return None
-    return json.loads(p.read_text(encoding="utf-8"))
+    return _read(p)
 
 
 def list_all(limit: int = 50) -> list:
@@ -48,16 +66,28 @@ def list_all(limit: int = 50) -> list:
     for p in sorted(config.JOBS.glob("*/job.json"),
                     key=lambda x: x.stat().st_mtime, reverse=True)[:limit]:
         try:
-            jobs.append(json.loads(p.read_text(encoding="utf-8")))
+            jobs.append(_read(p))
         except Exception:
             continue
     return jobs
 
 
 def _save(job: dict):
+    """Atomic write: temp file + os.replace, so readers never see partial JSON."""
+    p = _path(job["id"])
     with _lock:
-        _path(job["id"]).write_text(json.dumps(job, ensure_ascii=False),
-                                     encoding="utf-8")
+        fd, tmp = tempfile.mkstemp(dir=p.parent, prefix="job",
+                                   suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(json.dumps(job, ensure_ascii=False))
+            os.replace(tmp, p)
+        except BaseException:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
 
 
 def update(job_id: str, **fields):

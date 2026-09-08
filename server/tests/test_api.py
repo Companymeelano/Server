@@ -109,3 +109,34 @@ def test_rate_limit_and_cleanup():
     finally:
         config.RATE_PER_HOUR = old_rate
         _hits.clear()
+
+
+def test_concurrent_job_access():
+    """Regression: hammering get() during writes must never raise JSON errors."""
+    import threading
+    from app import jobs as J
+
+    job = J.create("concurrency probe idea", ["android"], "en")
+    errs = []
+
+    def writer():
+        try:
+            for i in range(60):
+                J.log(job["id"], f"line {i}")
+        except Exception as e:  # noqa: BLE001
+            errs.append(e)
+
+    def reader():
+        try:
+            for _ in range(300):
+                assert J.get(job["id"]) is not None
+        except Exception as e:  # noqa: BLE001
+            errs.append(e)
+
+    ts = ([threading.Thread(target=writer) for _ in range(2)] +
+          [threading.Thread(target=reader) for _ in range(4)])
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    assert not errs
