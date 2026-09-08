@@ -23,6 +23,8 @@ class SettingsStore(private val ctx: Context) {
         private val K_AIKEY = stringPreferencesKey("ai_key")
         private val K_AIBASE = stringPreferencesKey("ai_base")
         private val K_TOKEN = stringPreferencesKey("api_token")
+        private val K_THEME = stringPreferencesKey("theme")
+        private val K_ONBOARD = booleanPreferencesKey("onboarded")
     }
 
     val serverUrl: Flow<String> = ctx.dataStore.data.map { it[K_SERVER] ?: DEFAULT_SERVER }
@@ -31,6 +33,8 @@ class SettingsStore(private val ctx: Context) {
     val aiKey: Flow<String> = ctx.dataStore.data.map { it[K_AIKEY] ?: "" }
     val aiBase: Flow<String> = ctx.dataStore.data.map { it[K_AIBASE] ?: "" }
     val token: Flow<String> = ctx.dataStore.data.map { it[K_TOKEN] ?: "" }
+    val theme: Flow<String> = ctx.dataStore.data.map { it[K_THEME] ?: "galaxy" }
+    val onboarded: Flow<Boolean> = ctx.dataStore.data.map { it[K_ONBOARD] ?: false }
 
     suspend fun setServer(v: String) = ctx.dataStore.edit { it[K_SERVER] = v.trim().trimEnd('/') }
     suspend fun setLang(v: String) = ctx.dataStore.edit { it[K_LANG] = v }
@@ -38,4 +42,6 @@ class SettingsStore(private val ctx: Context) {
     suspend fun setAiKey(v: String) = ctx.dataStore.edit { it[K_AIKEY] = v.trim() }
     suspend fun setAiBase(v: String) = ctx.dataStore.edit { it[K_AIBASE] = v.trim().trimEnd('/') }
     suspend fun setToken(v: String) = ctx.dataStore.edit { it[K_TOKEN] = v.trim() }
+    suspend fun setTheme(v: String) = ctx.dataStore.edit { it[K_THEME] = v }
+    suspend fun setOnboarded(v: Boolean) = ctx.dataStore.edit { it[K_ONBOARD] = v }
 }

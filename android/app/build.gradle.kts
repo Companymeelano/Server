@@ -66,4 +66,7 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.datastore)
     implementation(libs.zxing)
+    implementation(libs.zxing.embedded)
+    implementation(libs.work.runtime)
+    implementation(libs.compose.foundation)
 }

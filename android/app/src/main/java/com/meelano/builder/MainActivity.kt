@@ -14,24 +14,27 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meelano.builder.data.Repository
 import com.meelano.builder.data.SettingsStore
 import com.meelano.builder.ui.BuilderApp
-import com.meelano.builder.ui.theme.Bg
 import com.meelano.builder.ui.theme.BuilderTheme
+import com.meelano.builder.ui.theme.Pal
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val store = SettingsStore(applicationContext)
         val repo = Repository()
+        // Deep link from the build-finished notification.
+        val startRoute = intent.getStringExtra("job_id")?.let { "build/$it" }
         setContent {
-            BuilderTheme {
+            val theme by store.theme.collectAsStateWithLifecycle("galaxy")
+            BuilderTheme(theme) {
                 val lang by store.lang.collectAsStateWithLifecycle("en")
                 CompositionLocalProvider(
                     LocalLayoutDirection provides
                         if (lang == "fa") LayoutDirection.Rtl
                         else LayoutDirection.Ltr
                 ) {
-                    Surface(Modifier.fillMaxSize(), color = Bg) {
-                        BuilderApp(repo, store, lang)
+                    Surface(Modifier.fillMaxSize(), color = Pal.bg) {
+                        BuilderApp(repo, store, lang, startRoute)
                     }
                 }
             }

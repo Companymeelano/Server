@@ -27,9 +27,10 @@ jobs:
           git pull --rebase || true
           mkdir -p releases
           cp android/app/build/outputs/apk/debug/app-debug.apk releases/MeeLano-Builder.apk
+          cp android/version.json releases/version.json
           git config user.name "meelano-bot"
           git config user.email "bot@meelano.local"
-          git add -f releases/MeeLano-Builder.apk
+          git add -f releases/MeeLano-Builder.apk releases/version.json
           git diff --cached --quiet && echo "APK unchanged" || (git commit -m "Publish MeeLano Builder APK (run ${{ github.run_number }})" && git push)
   release:
     # Signed Play-Store build. Needs repo secrets: KEYSTORE_BASE64,

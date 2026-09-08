@@ -24,6 +24,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,14 +33,13 @@ import com.meelano.builder.data.CreateJobReq
 import com.meelano.builder.data.Repository
 import com.meelano.builder.data.TemplateInfo
 import com.meelano.builder.ui.S
+import com.meelano.builder.ui.components.accentOf
 import com.meelano.builder.ui.components.errText
-import com.meelano.builder.ui.theme.Accent
-import com.meelano.builder.ui.theme.Bg
-import com.meelano.builder.ui.theme.Dim
-import com.meelano.builder.ui.theme.Surface
-import com.meelano.builder.ui.theme.Txt
+import com.meelano.builder.ui.theme.Pal
+import com.meelano.builder.work.NotificationWorker
 import kotlinx.coroutines.launch
 
+/** Template gallery — every card wears its own accent gradient. */
 @Composable
 fun TemplatesScreen(
     repo: Repository,
@@ -50,6 +51,7 @@ fun TemplatesScreen(
     token: String,
     onBuilt: (String) -> Unit,
 ) {
+    val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var list by remember { mutableStateOf<List<TemplateInfo>>(emptyList()) }
     var busy by remember { mutableStateOf("") }
@@ -73,6 +75,9 @@ fun TemplatesScreen(
                 else listOf("android", "windows")
                 val job = repo.apiFor(serverUrl, token).createJob(
                     CreateJobReq(idea, plats, lang, "", aiKey, aiBase))
+                runCatching {
+                    NotificationWorker.watch(ctx, job.id, serverUrl, token, lang)
+                }
                 busy = ""
                 onBuilt(job.id)
             } catch (e: Exception) {
@@ -83,28 +88,32 @@ fun TemplatesScreen(
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("⭐ ${S[lang, "templates"]}", color = Accent,
+        Text("⭐ ${S[lang, "templates"]}", color = Pal.accent,
             fontWeight = FontWeight.Bold, fontSize = 22.sp)
         Spacer(Modifier.height(8.dp))
-        if (err.isNotEmpty()) Text(err, color = Dim, fontSize = 13.sp)
+        if (err.isNotEmpty()) Text(err, color = Pal.dim, fontSize = 13.sp)
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(list.filter { it.id != "starter" }) { t ->
+                val ac = accentOf(t.accent.ifEmpty { "#D9A7E6" })
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                        .background(Surface).padding(14.dp)
+                        .background(Brush.horizontalGradient(
+                            listOf(ac.copy(alpha = 0.22f), Pal.surface)))
+                        .padding(14.dp)
                 ) {
                     Text(t.emoji, fontSize = 34.sp)
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                         Text(if (lang == "fa") t.name_fa else t.name_en,
-                            color = Txt, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            color = Pal.txt, fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp)
                         Text(if (lang == "fa") t.desc_fa else t.desc_en,
-                            color = Dim, fontSize = 13.sp)
+                            color = Pal.dim, fontSize = 13.sp)
                         Spacer(Modifier.height(8.dp))
                         Button(
                             onClick = { build(t) },
                             enabled = busy.isEmpty(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Accent, contentColor = Bg),
+                                containerColor = ac, contentColor = Pal.bg),
                         ) {
                             Text(if (busy == t.id) "…" else S[lang, "build_this"])
                         }

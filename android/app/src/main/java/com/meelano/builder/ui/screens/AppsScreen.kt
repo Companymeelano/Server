@@ -3,6 +3,7 @@ package com.meelano.builder.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -34,14 +37,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meelano.builder.data.Job
 import com.meelano.builder.data.Repository
+import com.meelano.builder.ui.Brand
 import com.meelano.builder.ui.S
 import com.meelano.builder.ui.components.StatusBadge
+import com.meelano.builder.ui.components.accentOf
 import com.meelano.builder.ui.components.errText
-import com.meelano.builder.ui.theme.Accent
-import com.meelano.builder.ui.theme.Bg
-import com.meelano.builder.ui.theme.Dim
-import com.meelano.builder.ui.theme.Surface
-import com.meelano.builder.ui.theme.Txt
+import com.meelano.builder.ui.theme.Pal
 
 @Composable
 fun AppsScreen(
@@ -66,41 +67,47 @@ fun AppsScreen(
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("📱 ${S[lang, "my_apps"]}", color = Accent,
+            Text("📱 ${S[lang, "my_apps"]}", color = Pal.accent,
                 fontWeight = FontWeight.Bold, fontSize = 22.sp,
                 modifier = Modifier.weight(1f))
             IconButton(onClick = { tick++ }) {
-                Icon(Icons.Filled.Refresh, S[lang, "refresh"], tint = Dim)
+                Icon(Icons.Filled.Refresh, S[lang, "refresh"], tint = Pal.dim)
             }
         }
         Spacer(Modifier.height(8.dp))
         if (err.isNotEmpty()) {
-            Text(err, color = Dim, fontSize = 13.sp)
+            Text(err, color = Pal.dim, fontSize = 13.sp)
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { tick++ },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Accent, contentColor = Bg),
+                    containerColor = Pal.accent, contentColor = Pal.bg),
             ) { Text(S[lang, "retry"]) }
             Spacer(Modifier.height(8.dp))
         }
         if (jobs.isEmpty() && err.isEmpty()) {
-            Text(S[lang, "empty_apps"], color = Dim, fontSize = 14.sp)
+            Text(S[lang, "empty_apps"], color = Pal.dim, fontSize = 14.sp)
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(jobs) { j ->
+                val ac = accentOf(
+                    Brand.TEMPLATE_ACCENTS[j.template] ?: "#D9A7E6")
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .background(Surface).clickable { onOpen(j.id) }
+                        .background(Pal.surface).clickable { onOpen(j.id) }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("📦", fontSize = 26.sp)
                     Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                        Text(if (j.name.isEmpty()) j.idea else j.name,
-                            color = Txt, fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp, maxLines = 1)
-                        Text(j.idea, color = Dim, fontSize = 12.sp, maxLines = 1)
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(Modifier.size(10.dp).clip(CircleShape).background(ac))
+                            Text(if (j.name.isEmpty()) j.idea else j.name,
+                                color = Pal.txt, fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp, maxLines = 1)
+                        }
+                        Text(j.idea, color = Pal.dim, fontSize = 12.sp, maxLines = 1)
                     }
                     StatusBadge(lang, j.status)
                 }

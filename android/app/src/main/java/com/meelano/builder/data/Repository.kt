@@ -2,6 +2,7 @@ package com.meelano.builder.data
 
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -40,5 +41,15 @@ class Repository {
     fun absolute(serverUrl: String, path: String): String {
         if (path.startsWith("http")) return path
         return serverUrl.trim().trimEnd('/') + path
+    }
+
+    /** Plain one-shot GET (used by the update checker). */
+    fun fetchText(url: String): String {
+        val req = Request.Builder().url(url)
+            .header("User-Agent", "MeeLano-Builder").build()
+        OkHttpClient().newCall(req).execute().use { r ->
+            if (!r.isSuccessful) throw Exception("HTTP ${r.code}")
+            return r.body?.string() ?: throw Exception("empty body")
+        }
     }
 }

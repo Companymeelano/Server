@@ -1,7 +1,13 @@
 package com.meelano.builder.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,11 +47,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -56,12 +65,9 @@ import com.meelano.builder.data.isTerminal
 import com.meelano.builder.ui.S
 import com.meelano.builder.ui.components.CardBox
 import com.meelano.builder.ui.components.StatusBadge
+import com.meelano.builder.ui.components.StepTimeline
 import com.meelano.builder.ui.components.errText
-import com.meelano.builder.ui.theme.Accent
-import com.meelano.builder.ui.theme.Bg
-import com.meelano.builder.ui.theme.Dim
-import com.meelano.builder.ui.theme.Surface2
-import com.meelano.builder.ui.theme.Txt
+import com.meelano.builder.ui.theme.Pal
 import com.meelano.builder.util.ApkInstaller
 import com.meelano.builder.util.QrImage
 import java.io.File
@@ -70,7 +76,7 @@ import kotlinx.coroutines.launch
 
 private data class Dl(val state: String, val pct: Int, val file: File? = null)
 
-/** Live build: progress + logs + downloads + direct APK install + QR share. */
+/** Live build: steps timeline + progress + logs + downloads + install + QR. */
 @Composable
 fun BuildScreen(
     repo: Repository,
@@ -84,11 +90,17 @@ fun BuildScreen(
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val main = remember { Handler(Looper.getMainLooper()) }
+    val haptics = LocalHapticFeedback.current
     var job by remember { mutableStateOf<Job?>(null) }
     var err by remember { mutableStateOf("") }
     var tick by remember { mutableStateOf(0) }
+    var celebrated by remember { mutableStateOf(false) }
+    var askedNotifs by remember { mutableStateOf(false) }
     var pendingInstall by remember { mutableStateOf<File?>(null) }
     val dls = remember { mutableStateMapOf<String, Dl>() }
+
+    val notifPerm = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()) {}
 
     LaunchedEffect(jobId, tick) {
         while (true) {
@@ -96,11 +108,31 @@ fun BuildScreen(
                 val j = repo.apiFor(serverUrl, token).job(jobId)
                 job = j
                 err = ""
-                if (j.isTerminal()) break
+                if (j.isTerminal()) {
+                    if (!celebrated) {
+                        celebrated = true
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                    break
+                }
             } catch (e: Exception) {
                 err = errText(lang, e)
             }
             delay(1500)
+        }
+    }
+
+    // Ask for notification permission once while a build is active.
+    LaunchedEffect(job?.status) {
+        val j = job
+        if (!askedNotifs && j != null && !j.isTerminal() &&
+            Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(ctx,
+                Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            askedNotifs = true
+            notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
@@ -140,29 +172,34 @@ fun BuildScreen(
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Filled.ArrowBack, S[lang, "back"], tint = Dim)
+                Icon(Icons.Filled.ArrowBack, S[lang, "back"], tint = Pal.dim)
             }
         }
         CardBox(Modifier.fillMaxWidth()) {
             val j = job
+            AnimatedVisibility(visible = j?.status == "done") {
+                Text("🎉", fontSize = 44.sp, textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth())
+            }
             Text(
                 if (j == null || j.name.isEmpty()) S[lang, "building"]
                 else "📦 ${j.name}",
-                color = Accent, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                color = Pal.accent, fontWeight = FontWeight.Bold, fontSize = 20.sp)
             if (j != null) {
-                Text("💡 ${j.idea}", color = Dim, fontSize = 14.sp)
+                Text("💡 ${j.idea}", color = Pal.dim, fontSize = 14.sp)
                 StatusBadge(lang, j.status)
                 LinearProgressIndicator(
                     progress = { j.progress / 100f },
                     modifier = Modifier.fillMaxWidth().height(10.dp)
                         .clip(RoundedCornerShape(6.dp)),
-                    color = Accent, trackColor = Surface2)
-                Text("${j.progress}%", color = Dim, fontSize = 12.sp)
+                    color = Pal.accent, trackColor = Pal.surface2)
+                Text("${j.progress}%", color = Pal.dim, fontSize = 12.sp)
+                StepTimeline(j.steps)
             }
             if (err.isNotEmpty()) {
                 Text(err, color = Color(0xFFFF9D9D), fontSize = 13.sp)
                 OutlinedButton(onClick = { err = ""; tick++ }) {
-                    Text(S[lang, "retry"], color = Accent)
+                    Text(S[lang, "retry"], color = Pal.accent)
                 }
             }
 
@@ -179,14 +216,14 @@ fun BuildScreen(
                         .clip(RoundedCornerShape(12.dp)).background(Color(0xFF0E060E))
                         .padding(10.dp),
                 ) {
-                    items(logs) { Text(it, color = Txt, fontSize = 12.sp) }
+                    items(logs) { Text(it, color = Pal.txt, fontSize = 12.sp) }
                 }
             }
 
             // Artifacts
             val arts = job?.artifacts ?: emptyList()
             if (arts.isNotEmpty()) {
-                Text("⬇ ${S[lang, "download"]}", color = Txt,
+                Text("⬇ ${S[lang, "download"]}", color = Pal.txt,
                     fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 arts.forEach { a ->
                     ArtifactRow(lang, a, dls[a.filename],
@@ -203,25 +240,25 @@ fun BuildScreen(
                 }
                 val apk = arts.firstOrNull { it.kind == "apk" }
                 if (apk != null) {
-                    Text(S[lang, "install_hint"], color = Dim, fontSize = 12.sp)
+                    Text(S[lang, "install_hint"], color = Pal.dim, fontSize = 12.sp)
                 }
             }
 
             // Preview + QR
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(onClick = { onPreview(jobId) }) {
-                    Text(S[lang, "preview"], color = Accent)
+                    Text(S[lang, "preview"], color = Pal.accent)
                 }
             }
             val shareable = (job?.artifacts ?: emptyList())
                 .firstOrNull { it.kind == "apk" }
                 ?: (job?.artifacts ?: emptyList()).firstOrNull { it.kind == "exe" }
             if (job?.isTerminal() == true && shareable != null) {
-                Text(S[lang, "share_qr"], color = Txt,
+                Text(S[lang, "share_qr"], color = Pal.txt,
                     fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 QrImage(repo.absolute(serverUrl, shareable.url),
                     Modifier.size(180.dp).align(Alignment.CenterHorizontally))
-                Text(shareable.filename, color = Dim, fontSize = 12.sp,
+                Text(shareable.filename, color = Pal.dim, fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth())
             }
@@ -244,16 +281,16 @@ private fun ArtifactRow(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
             .background(Color(0xFF0E060E)).padding(12.dp)
     ) {
-        Text("${iconFor(a.kind)} ${a.label}", color = Txt, fontSize = 14.sp,
+        Text("${iconFor(a.kind)} ${a.label}", color = Pal.txt, fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold)
         Text(a.filename + if (a.size > 0) " • ${a.size / 1024} KB" else "",
-            color = Dim, fontSize = 12.sp)
+            color = Pal.dim, fontSize = 12.sp)
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = onDownload,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Accent, contentColor = Bg),
+                    containerColor = Pal.accent, contentColor = Pal.bg),
             ) {
                 Icon(Icons.Filled.Download, null)
                 Text(when {
@@ -277,7 +314,7 @@ private fun ArtifactRow(
                 progress = { (if (dl.pct < 0) 0 else dl.pct) / 100f },
                 modifier = Modifier.fillMaxWidth().height(6.dp)
                     .clip(RoundedCornerShape(4.dp)),
-                color = Accent, trackColor = Surface2)
+                color = Pal.accent, trackColor = Pal.surface2)
         }
     }
 }

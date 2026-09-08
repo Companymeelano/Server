@@ -37,16 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meelano.builder.ui.Brand
 import com.meelano.builder.ui.S
-import com.meelano.builder.ui.theme.Accent
-import com.meelano.builder.ui.theme.Blue
-import com.meelano.builder.ui.theme.Dim
-import com.meelano.builder.ui.theme.Green
-import com.meelano.builder.ui.theme.Red
-import com.meelano.builder.ui.theme.Surface
-import com.meelano.builder.ui.theme.Surface2
-import com.meelano.builder.ui.theme.Txt
-import com.meelano.builder.ui.theme.Yellow
 import kotlinx.coroutines.launch
+import com.meelano.builder.ui.theme.Pal
 
 /** Top bar exactly like the YBee screenshot: ☰ Title ... AUTO ▢ */
 @Composable
@@ -61,14 +53,14 @@ fun YbTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onMenu) {
-            Icon(Icons.Filled.Menu, "menu", tint = Dim)
+            Icon(Icons.Filled.Menu, "menu", tint = Pal.dim)
         }
-        Text(Brand.SHORT, color = Accent, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+        Text(Brand.SHORT, color = Pal.accent, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
         Spacer(Modifier.weight(1f))
         if (auto) {
             Box(
                 modifier = Modifier.clip(RoundedCornerShape(6.dp))
-                    .background(Blue).padding(horizontal = 8.dp, vertical = 3.dp)
+                    .background(Pal.blue).padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Text("AUTO", color = Color(0xFF0B1520), fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold)
@@ -76,7 +68,7 @@ fun YbTopBar(
             Spacer(Modifier.width(8.dp))
         }
         IconButton(onClick = onPhone) {
-            Icon(Icons.Filled.PhoneAndroid, "preview", tint = Dim)
+            Icon(Icons.Filled.PhoneAndroid, "preview", tint = Pal.dim)
         }
     }
 }
@@ -84,10 +76,10 @@ fun YbTopBar(
 @Composable
 fun StatusBadge(lang: String, status: String) {
     val (bg, fg) = when (status) {
-        "done" -> Color(0xFF1E4D2B) to Green
-        "building", "queued" -> Color(0xFF3A2A12) to Yellow
-        "failed" -> Color(0xFF5A1E2E) to Red
-        else -> Surface2 to Dim
+        "done" -> Color(0xFF1E4D2B) to Pal.green
+        "building", "queued" -> Color(0xFF3A2A12) to Pal.yellow
+        "failed" -> Color(0xFF5A1E2E) to Pal.red
+        else -> Pal.surface2 to Pal.dim
     }
     val label = when (status) {
         "done" -> S[lang, "status_done"]
@@ -115,37 +107,37 @@ fun DrawerContent(
         scope.launch { drawer.close() }
         onGo(r)
     }
-    ModalDrawerSheet(drawerContainerColor = Surface, drawerContentColor = Txt) {
+    ModalDrawerSheet(drawerContainerColor = Pal.surface, drawerContentColor = Pal.txt) {
         Column(Modifier.padding(16.dp)) {
-            Text("🔨 ${Brand.FULL}", color = Accent,
+            Text("🔨 ${Brand.FULL}", color = Pal.accent,
                 fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
             Spacer(Modifier.height(4.dp))
             Text(if (lang == "fa") Brand.TEAM_FA else Brand.TEAM_EN,
-                color = Dim, fontSize = 12.sp)
+                color = Pal.dim, fontSize = 12.sp)
         }
         val colors = NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = Surface2, selectedTextColor = Accent,
-            unselectedTextColor = Txt)
+            selectedContainerColor = Pal.surface2, selectedTextColor = Pal.accent,
+            unselectedTextColor = Pal.txt)
         NavigationDrawerItem(
             label = { Text(S[lang, "builder"]) }, selected = route == "home",
             onClick = { go("home") },
-            icon = { Icon(Icons.Filled.Home, null, tint = Dim) }, colors = colors)
+            icon = { Icon(Icons.Filled.Home, null, tint = Pal.dim) }, colors = colors)
         NavigationDrawerItem(
             label = { Text(S[lang, "my_apps"]) }, selected = route == "apps",
             onClick = { go("apps") },
-            icon = { Icon(Icons.Filled.Apps, null, tint = Dim) }, colors = colors)
+            icon = { Icon(Icons.Filled.Apps, null, tint = Pal.dim) }, colors = colors)
         NavigationDrawerItem(
             label = { Text(S[lang, "templates"]) }, selected = route == "templates",
             onClick = { go("templates") },
-            icon = { Icon(Icons.Filled.Star, null, tint = Dim) }, colors = colors)
+            icon = { Icon(Icons.Filled.Star, null, tint = Pal.dim) }, colors = colors)
         NavigationDrawerItem(
             label = { Text(S[lang, "settings"]) }, selected = route == "settings",
             onClick = { go("settings") },
-            icon = { Icon(Icons.Filled.Settings, null, tint = Dim) }, colors = colors)
+            icon = { Icon(Icons.Filled.Settings, null, tint = Pal.dim) }, colors = colors)
         NavigationDrawerItem(
             label = { Text(S[lang, "about"]) }, selected = route == "about",
             onClick = { go("about") },
-            icon = { Icon(Icons.Filled.Info, null, tint = Dim) }, colors = colors)
+            icon = { Icon(Icons.Filled.Info, null, tint = Pal.dim) }, colors = colors)
     }
 }
 
@@ -172,7 +164,7 @@ fun errText(lang: String, e: Throwable): String {
 
 @Composable
 fun CardBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier = modifier.clip(RoundedCornerShape(16.dp)).background(Surface)
+    Box(modifier = modifier.clip(RoundedCornerShape(16.dp)).background(Pal.surface)
         .padding(18.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { content() }
     }

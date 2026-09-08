@@ -14,14 +14,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import com.meelano.builder.ui.S
-import com.meelano.builder.ui.theme.Dim
+import com.meelano.builder.ui.theme.Pal
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun PreviewScreen(serverUrl: String, lang: String, jobId: String, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         IconButton(onClick = onBack) {
-            Icon(Icons.Filled.ArrowBack, S[lang, "back"], tint = Dim)
+            Icon(Icons.Filled.ArrowBack, S[lang, "back"], tint = Pal.dim)
         }
         AndroidView(
             factory = { ctx ->

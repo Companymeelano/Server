@@ -1,11 +1,17 @@
 package com.meelano.builder.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,13 +24,20 @@ import com.meelano.builder.ui.screens.AboutScreen
 import com.meelano.builder.ui.screens.AppsScreen
 import com.meelano.builder.ui.screens.BuildScreen
 import com.meelano.builder.ui.screens.HomeScreen
+import com.meelano.builder.ui.screens.OnboardScreen
 import com.meelano.builder.ui.screens.PreviewScreen
 import com.meelano.builder.ui.screens.SettingsScreen
 import com.meelano.builder.ui.screens.TemplatesScreen
+import com.meelano.builder.ui.theme.Pal
 import kotlinx.coroutines.launch
 
 @Composable
-fun BuilderApp(repo: Repository, store: SettingsStore, lang: String) {
+fun BuilderApp(
+    repo: Repository,
+    store: SettingsStore,
+    lang: String,
+    startRoute: String? = null,
+) {
     val nav = rememberNavController()
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -36,6 +49,7 @@ fun BuilderApp(repo: Repository, store: SettingsStore, lang: String) {
     val aiKey by store.aiKey.collectAsStateWithLifecycle("")
     val aiBase by store.aiBase.collectAsStateWithLifecycle("")
     val token by store.token.collectAsStateWithLifecycle("")
+    val onboarded by store.onboarded.collectAsStateWithLifecycle(null)
 
     fun phoneAction() {
         scope.launch {
@@ -55,7 +69,23 @@ fun BuilderApp(repo: Repository, store: SettingsStore, lang: String) {
             }
         },
     ) {
-        NavHost(nav, startDestination = "home") {
+        if (onboarded == null) {
+            Box(Modifier.fillMaxSize().background(Pal.bg),
+                contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Pal.accent)
+            }
+            return@ModalNavigationDrawer
+        }
+        NavHost(nav, startDestination = startRoute
+            ?: if (onboarded == true) "home" else "onboard") {
+            composable("onboard") {
+                OnboardScreen(lang) {
+                    scope.launch { store.setOnboarded(true) }
+                    nav.navigate("home") {
+                        popUpTo("onboard") { inclusive = true }
+                    }
+                }
+            }
             composable("home") {
                 HomeScreen(repo, serverUrl, lang, auto, aiKey, aiBase, token,
                     onOpenDrawer = { scope.launch { drawer.open() } },
