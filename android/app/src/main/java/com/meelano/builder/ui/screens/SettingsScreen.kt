@@ -335,6 +335,3 @@ private fun ThemeRow(
         RadioButton(id == current, onClick = onPick)
     }
 }
-d == current, onClick = onPick)
-    }
-}
