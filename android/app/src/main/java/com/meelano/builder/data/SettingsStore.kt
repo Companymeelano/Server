@@ -34,7 +34,8 @@ class SettingsStore(private val ctx: Context) {
     val aiBase: Flow<String> = ctx.dataStore.data.map { it[K_AIBASE] ?: "" }
     val token: Flow<String> = ctx.dataStore.data.map { it[K_TOKEN] ?: "" }
     val theme: Flow<String> = ctx.dataStore.data.map { it[K_THEME] ?: "galaxy" }
-    val onboarded: Flow<Boolean> = ctx.dataStore.data.map { it[K_ONBOARD] ?: false }
+    // Nullable: null = not loaded yet (Nav shows a splash until then).
+    val onboarded: Flow<Boolean?> = ctx.dataStore.data.map { it[K_ONBOARD] }
 
     suspend fun setServer(v: String) = ctx.dataStore.edit { it[K_SERVER] = v.trim().trimEnd('/') }
     suspend fun setLang(v: String) = ctx.dataStore.edit { it[K_LANG] = v }

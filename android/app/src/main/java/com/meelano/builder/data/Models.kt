@@ -64,4 +64,7 @@ data class Job(
 
 data class JobsResp(val jobs: List<Job> = emptyList())
 
+/** True once the server will send no more updates for this job. */
+fun Job.isTerminal(): Boolean = status == "done" || status == "failed"
+
 fun Job.isTerminal() = status == "done" || status == "partial" || status == "failed"
