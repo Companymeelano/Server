@@ -140,3 +140,16 @@ def test_concurrent_job_access():
     for t in ts:
         t.join()
     assert not errs
+
+
+def test_connect_info_and_qr():
+    try:
+        import qrcode  # noqa: F401
+    except ImportError:
+        return  # optional dependency
+    r = client.get("/api/v1/connect-info")
+    assert r.status_code == 200
+    assert r.json()["url"].startswith("http")
+    r = client.get("/api/v1/connect-qr")
+    assert r.status_code == 200
+    assert r.content[:8] == b"\x89PNG\r\n\x1a\n"

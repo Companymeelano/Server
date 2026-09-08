@@ -25,6 +25,21 @@ async function api(path, opts) {
   return r.json();
 }
 
+async function showQr() {
+  const m = document.getElementById("qrModal");
+  m.classList.remove("hidden");
+  document.getElementById("qrTitle").innerText =
+    LANG === "fa" ? "📱 اتصال اپ با اسکن" : "📱 Connect your app";
+  document.getElementById("qrHint").innerText = LANG === "fa"
+    ? "توی اپ: تنظیمات ← اسکن QR سرور — بدون تایپ آدرس!"
+    : "In the app: Settings → Scan server QR — no typing!";
+  document.getElementById("qrImg").src = "/api/v1/connect-qr";
+  try {
+    const info = await api("/api/v1/connect-info");
+    document.getElementById("qrUrl").innerText = info.url;
+  } catch (e) { document.getElementById("qrUrl").innerText = ""; }
+}
+
 function askToken() {
   const v = prompt(LANG === "fa"
     ? "توکن امنیتی سرور (BUILDER_TOKEN) را وارد کن — خالی = بدون توکن:"
@@ -42,6 +57,7 @@ async function init() {
     applyLang();
   };
   document.getElementById("keyBtn").onclick = askToken;
+  document.getElementById("qrBtn").onclick = showQr;
   document.getElementById("go").onclick = createJob;
   document.getElementById("idea").addEventListener("keydown", e => {
     if (e.key === "Enter") createJob();

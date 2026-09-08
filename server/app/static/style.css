@@ -62,3 +62,13 @@ iframe.prev { width: 100%; height: 420px; border: 1px solid var(--line);
 .row button { background: var(--surface2); color: var(--txt); border: 1px solid var(--line);
   border-radius: 10px; padding: 8px 14px; cursor: pointer; }
 .hidden { display: none !important; }
+#qrModal { position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal { background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 24px; text-align: center; max-width: 90vw; }
+.modal h3 { color: var(--accent); margin-top: 0; }
+.modal img { width: min(64vw, 260px); border-radius: 12px; background: #fff; padding: 8px; }
+.qrurl { color: var(--dim); font-size: 13px; margin-top: 8px; word-break: break-all; }
+.modal p { color: var(--dim); font-size: 13px; }
+.modal button { background: var(--surface2); color: var(--txt);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 18px; cursor: pointer; }

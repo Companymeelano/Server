@@ -12,8 +12,19 @@
   <h1>MeeLano</h1>
   <div class="spacer"></div>
   <span class="auto">AUTO</span>
+  <button class="iconbtn" id="qrBtn" title="Connect app">📱</button>
   <button class="iconbtn" id="keyBtn" title="API token">🔑</button>
   <button class="iconbtn" id="langBtn" title="FA/EN">🌐</button>
+</div>
+
+<div id="qrModal" class="hidden">
+  <div class="modal">
+    <h3 id="qrTitle">📱 Connect your app</h3>
+    <img id="qrImg" alt="QR">
+    <div id="qrUrl" class="qrurl"></div>
+    <p id="qrHint"></p>
+    <button onclick="document.getElementById('qrModal').classList.add('hidden')">✕</button>
+  </div>
 </div>
 
 <div id="home">

@@ -1,12 +1,13 @@
 """MeeLano Builder API — type one short sentence, get installable apps."""
 import json
+import os
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -14,9 +15,39 @@ from . import builder, config, jobs
 from .templates_data import SUGGESTIONS, TEMPLATES
 
 
+def _lan_ip() -> str:
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(2)
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"
+
+
+def _announce():
+    """Advertise on the LAN via mDNS so the app can auto-discover us."""
+    try:
+        import socket
+        from zeroconf import ServiceInfo, Zeroconf
+        ip = _lan_ip()
+        port = int(os.environ.get("PORT", "8000"))
+        info = ServiceInfo(
+            "_meelano-builder._tcp.local.",
+            "MeeLano Builder._meelano-builder._tcp.local.",
+            addresses=[socket.inet_aton(ip)], port=port,
+            properties={"path": "/"})
+        Zeroconf().register_service(info)
+        print(f"mDNS announce: MeeLano Builder on {ip}:{port}", flush=True)
+    except Exception as e:
+        print(f"mDNS off ({e})", flush=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     jobs.cleanup(config.JOB_RETENTION_DAYS, config.MAX_JOBS)
+    _announce()
     yield
 
 
@@ -47,6 +78,12 @@ async def _guard(request: Request, call_next):
     return await call_next(request)
 
 
+def _public_url(request: Request) -> str:
+    if config.PUBLIC_BASE_URL:
+        return config.PUBLIC_BASE_URL
+    return f"http://{_lan_ip()}:{request.url.port or 8000}"
+
+
 class CreateJob(BaseModel):
     idea: str = Field(min_length=3, max_length=500)
     platforms: list[str] = Field(default=["android", "windows"])
@@ -63,6 +100,29 @@ def health():
             "ai": bool(config.OPENAI_API_KEY),
             "cloud_build": github_cloud.enabled(),
             "auth": bool(config.API_TOKEN)}
+
+
+@app.get("/api/v1/connect-info")
+def connect_info(request: Request):
+    """Connection bundle for the Android app (also encoded in the QR)."""
+    return {"url": _public_url(request), "token": config.API_TOKEN,
+            "version": config.APP_VERSION}
+
+
+@app.get("/api/v1/connect-qr")
+def connect_qr(request: Request):
+    """QR code the app scans to configure itself (no typing IPs)."""
+    try:
+        import io
+
+        import qrcode
+    except ImportError:
+        raise HTTPException(501, "qr not installed (pip install qrcode)")
+    payload = json.dumps({"v": 1, "url": _public_url(request),
+                          "token": config.API_TOKEN})
+    buf = io.BytesIO()
+    qrcode.make(payload).save(buf, "PNG")
+    return Response(buf.getvalue(), media_type="image/png")
 
 
 @app.get("/api/v1/templates")
